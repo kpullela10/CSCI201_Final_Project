@@ -1,6 +1,6 @@
 # Squirrel Spotter USC - Frontend
 
-A React + TypeScript frontend application for the Squirrel Spotter USC web app. This is a frontend-only implementation that communicates with backend REST APIs and WebSocket endpoints.
+A React + TypeScript frontend application for the Squirrel Spotter USC web app. This README.md section details the frontend implementation that communicates with backend REST APIs and WebSocket endpoints.
 
 ## Tech Stack
 
