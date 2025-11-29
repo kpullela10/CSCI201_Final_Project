@@ -1,134 +1,387 @@
-# Squirrel Spotter USC - Frontend
+# Squirrel Spotter USC
 
-A React + TypeScript frontend application for the Squirrel Spotter USC web app. This README.md section details the frontend implementation that communicates with backend REST APIs and WebSocket endpoints.
+A full-stack web application for USC students to pin squirrel sightings on campus and compete on a leaderboard.
+
+## Project Overview
+
+Squirrel Spotter USC allows USC students to:
+- 📍 Drop pins on a map when they spot squirrels on campus
+- 📸 Upload photos of squirrel sightings
+- 🏆 Compete on weekly and all-time leaderboards
+- 🔒 Authenticate with USC email addresses (@usc.edu)
+- ⚡ See real-time updates when others spot squirrels
 
 ## Tech Stack
 
+### Frontend
 - **React 18** with TypeScript
-- **React Router** for routing
+- **React Router** for client-side routing
 - **Tailwind CSS** for styling
 - **Vite** as the build tool
-- **Leaflet** with React-Leaflet for map functionality (OpenStreetMap tiles)
+- **Leaflet** with React-Leaflet for interactive maps (OpenStreetMap tiles)
+- **WebSocket** for real-time pin updates
+
+### Backend
+- **Java 17** with Spring Boot 3.2
+- **Spring Security** with JWT authentication
+- **Spring Data JPA** with MySQL
+- **Argon2** for secure password hashing
+- **WebSocket** support for real-time features
+- **Maven** for dependency management
+
+### Database
+- **MySQL 8.0+** (Railway MySQL for deployment)
+
+### Deployment
+- **Backend:** Railway
+- **Frontend:** Vercel (recommended) or Netlify
+- **Database:** Railway MySQL
+
+## Features
+
+### ✅ Implemented Features
+
+#### Authentication
+- User signup with USC email validation
+- Secure login with JWT token generation
+- Argon2 password hashing (industry-standard security)
+- Protected routes requiring authentication
+
+#### Map Interface
+- Interactive Leaflet map centered on USC campus
+- Real-time pin updates via WebSocket
+- Filter pins: "All weekly pins" or "My pins only"
+- Click map to drop new pins (authenticated users only)
+- Click markers to view pin details
+
+#### Pin Management
+- Create pins with description and optional image upload
+- View pin details: image, description, username, timestamp, coordinates
+- Rate limiting: 4-5 pins per 30 minutes per user
+
+#### Leaderboard
+- Weekly leaderboard (pins from last 7 days)
+- All-time leaderboard (total pins)
+- Pagination (20 entries per page)
+- Click username to view user's pins
+- Responsive table design
 
 ## Prerequisites
 
-- Node.js (v16 or higher)
-- npm or yarn
+Before running this application, ensure you have:
 
-## Setup
+### For Backend Development
+- **Java 17 or higher** ([Download](https://adoptium.net/))
+- **Maven 3.6+** ([Download](https://maven.apache.org/download.cgi))
+- **MySQL 8.0+** (local) or Railway MySQL account
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+### For Frontend Development
+- **Node.js 16+** ([Download](https://nodejs.org/))
+- **npm** (comes with Node.js)
 
-2. **Set up environment variables:**
-   
-   Create a `.env` file in the root directory:
-   ```env
-   VITE_API_BASE_URL=http://localhost:8080
-   ```
-   
-   Update `VITE_API_BASE_URL` if your backend runs on a different port/URL.
+### Verification
+Check if you have the prerequisites installed:
 
-3. **Run the development server:**
-   ```bash
-   npm run dev
-   ```
+```bash
+# Check Java
+java -version
 
-   The app will be available at `http://localhost:5173` (or the port Vite assigns).
+# Check Maven
+mvn -version
+
+# Check Node.js
+node --version
+
+# Check npm
+npm --version
+```
+
+## Quick Start
+
+### 1. Clone the Repository
+
+```bash
+git clone <your-repo-url>
+cd CSCI201_Final_Project
+```
+
+### 2. Set Up Backend
+
+```bash
+# Navigate to backend directory
+cd backend
+
+# Configure database connection
+# Edit src/main/resources/application.properties
+# Update the database URL, username, and password
+
+# Build the project
+mvn clean install
+
+# Run the backend server
+mvn spring-boot:run
+```
+
+The backend will start on **http://localhost:8080**
+
+See [backend/README.md](backend/README.md) for detailed backend setup instructions.
+
+### 3. Set Up Frontend
+
+```bash
+# Navigate to frontend directory (from project root)
+cd frontend
+
+# Install dependencies
+npm install
+
+# Create environment file
+cp .env.example .env
+
+# Edit .env and set VITE_API_BASE_URL=http://localhost:8080
+
+# Run the development server
+npm run dev
+```
+
+The frontend will start on **http://localhost:5173**
+
+### 4. Test the Application
+
+1. Open your browser to http://localhost:5173
+2. Click "Sign Up" and create an account with a @usc.edu email
+3. Log in with your credentials
+4. Click on the map to drop a pin
+5. View the leaderboard to see your rank
+6. Try viewing other users' pins
 
 ## Project Structure
 
 ```
-src/
-├── api/              # API client functions
-│   ├── auth.ts       # Authentication API calls
-│   ├── pins.ts       # Pin-related API calls
-│   └── leaderboard.ts # Leaderboard API calls
-├── components/       # Reusable React components
-│   ├── AuthForm.tsx
-│   ├── LeaderboardTable.tsx
-│   ├── MapView.tsx
-│   ├── Navbar.tsx
-│   ├── PinDetailsModal.tsx
-│   ├── PinForm.tsx
-│   └── Tabs.tsx
-├── hooks/            # Custom React hooks
-│   ├── useAuth.tsx   # Authentication state management
-│   └── useWebSocketPins.ts # WebSocket connection for real-time updates
-├── routes/           # Page components
-│   ├── HomePage.tsx
-│   ├── LoginPage.tsx
-│   ├── SignupPage.tsx
-│   ├── MapPage.tsx
-│   └── LeaderboardPage.tsx
-├── types/            # TypeScript type definitions
-│   └── index.ts
-├── App.tsx           # Main app component with routing
-├── main.tsx          # Entry point
-└── index.css         # Global styles with Tailwind
+CSCI201_Final_Project/
+├── backend/                      # Spring Boot backend
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── java/com/usc/squirrelspotter/
+│   │   │   │   ├── SquirrelSpotterApplication.java
+│   │   │   │   ├── config/       # Security & CORS configuration
+│   │   │   │   ├── controller/   # REST API endpoints
+│   │   │   │   ├── service/      # Business logic
+│   │   │   │   ├── repository/   # Database access
+│   │   │   │   ├── model/        # JPA entities
+│   │   │   │   ├── security/     # JWT authentication
+│   │   │   │   ├── dto/          # Data transfer objects
+│   │   │   │   └── exception/    # Custom exceptions
+│   │   │   └── resources/
+│   │   │       ├── application.properties  # Configuration
+│   │   │       └── schema.sql             # Database schema
+│   │   └── test/                 # Unit tests
+│   ├── pom.xml                   # Maven dependencies
+│   └── README.md                 # Backend documentation
+│
+├── frontend/                     # React frontend
+│   ├── src/
+│   │   ├── api/                  # API client functions
+│   │   ├── components/           # React components
+│   │   ├── hooks/                # Custom React hooks
+│   │   ├── routes/               # Page components
+│   │   ├── types/                # TypeScript types
+│   │   ├── utils/                # Utility functions
+│   │   ├── App.tsx               # Main app with routing
+│   │   └── main.tsx              # Entry point
+│   ├── package.json              # npm dependencies
+│   └── vite.config.ts            # Vite configuration
+│
+├── tests/                        # Test suites
+│   ├── account_creation_tests/   # Authentication tests
+│   ├── leaderboard_tests/        # SQL test files
+│   └── pin_tests/                # Pin operation tests
+│
+└── README.md                     # This file
 ```
 
-## Features
+## API Endpoints
 
 ### Authentication
-- Login and signup pages with USC email validation
-- Token-based authentication stored in localStorage
-- Protected routes (map page requires authentication)
+- `POST /api/auth/signup` - Register new user (requires @usc.edu email)
+- `POST /api/auth/login` - Login and get JWT token
 
-### Map Interface
-- Leaflet map integration centered on USC campus (using OpenStreetMap tiles)
-- Real-time pin updates via WebSocket (with 30s polling fallback)
-- Click to drop new pins (authenticated users only)
-- Filter pins: "All weekly pins" or "My pins only"
-- Click markers to view pin details
-
-### Pin Management
-- Create pins with description and optional image upload
-- View pin details in modal (image, description, user, time, coordinates)
-- Rate limiting error handling (shows user-friendly message on 429)
-
-### Leaderboard
-- Weekly and all-time leaderboard tabs
-- Pagination (20 entries per page)
-- Click username to view that user's pins
-- Responsive table design
-
-## API Endpoints Expected
-
-The frontend expects the following backend endpoints:
-
-### Authentication
-- `POST /api/auth/login` - Login
-- `POST /api/auth/signup` - Signup
-
-### Pins
-- `GET /api/pins/weekly` - Get weekly pins
+### Pins (Requires Authentication)
+- `GET /api/pins/weekly` - Get pins from last 7 days
 - `GET /api/pins/my` - Get current user's pins
-- `POST /api/pins` - Create a new pin (multipart/form-data)
+- `POST /api/pins` - Create new pin (multipart/form-data)
 - `GET /api/pins/:pinID` - Get pin by ID
 
 ### Leaderboard
-- `GET /api/leaderboard?type=weekly|all-time&page=1&pageSize=20` - Get leaderboard
-- `GET /api/users/:userID/pins` - Get pins by user
+- `GET /api/leaderboard?type={weekly|all-time}&page={page}&pageSize={size}` - Get leaderboard
+- `GET /api/users/:userID/pins` - Get pins by specific user
 
 ### WebSocket
 - `ws://<API_BASE_URL>/ws/pins` - Real-time pin updates
 
-## Build for Production
+For detailed API documentation, see [backend/README.md](backend/README.md).
+
+## Testing
+
+### Backend Tests
+
+Run authentication tests:
 
 ```bash
-npm run build
+# Terminal 1: Start backend
+cd backend
+mvn spring-boot:run
+
+# Terminal 2: Run tests
+cd tests/account_creation_tests
+python run_tests.py
 ```
 
-The built files will be in the `dist/` directory.
+### Manual Testing with cURL
 
-## Notes
+```bash
+# Test signup
+curl -X POST http://localhost:8080/api/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@usc.edu","username":"testuser","password":"password123"}'
 
-- This is a **frontend-only** implementation. No backend code is included.
-- All authentication tokens are stored in localStorage.
-- The app assumes the backend will handle password hashing, rate limiting, and all security measures.
-- WebSocket connection automatically falls back to polling every 30 seconds if the connection fails.
-- USC email validation requires `@usc.edu` in the email address.
+# Test login
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@usc.edu","password":"password123"}'
+```
 
+## Deployment
+
+### Deploy Backend to Railway
+
+1. Create account at [Railway](https://railway.app/)
+2. Create new project and add MySQL database
+3. Note the database credentials
+4. Deploy backend:
+
+```bash
+# Install Railway CLI
+npm i -g @railway/cli
+
+# Login and deploy
+railway login
+railway link
+railway up
+```
+
+5. Set environment variables in Railway dashboard:
+   - `DATABASE_URL`
+   - `DATABASE_USERNAME`
+   - `DATABASE_PASSWORD`
+   - `JWT_SECRET`
+
+6. Note your backend URL: `https://your-backend.railway.app`
+
+### Deploy Frontend to Vercel
+
+1. Create account at [Vercel](https://vercel.com/)
+2. Connect your GitHub repository
+3. Set environment variable:
+   - `VITE_API_BASE_URL=https://your-backend.railway.app`
+4. Deploy!
+
+See [backend/RAILWAY_SETUP.md](backend/RAILWAY_SETUP.md) for detailed deployment instructions.
+
+## Environment Variables
+
+### Backend (.env or Railway environment variables)
+
+```env
+DATABASE_URL=jdbc:mysql://host:port/database
+DATABASE_USERNAME=root
+DATABASE_PASSWORD=your_password
+JWT_SECRET=your-256-bit-secret-key
+IMAGE_STORAGE_PATH=./uploads/
+```
+
+### Frontend (.env)
+
+```env
+VITE_API_BASE_URL=http://localhost:8080  # or your Railway URL
+```
+
+## Security Features
+
+- **Password Security:** Argon2 hashing algorithm (OWASP recommended)
+- **Authentication:** JWT tokens with 24-hour expiration
+- **Email Validation:** Only @usc.edu emails allowed
+- **CORS:** Configured to allow only trusted origins
+- **Rate Limiting:** Pin creation limited to prevent spam
+- **Input Validation:** Server-side validation on all endpoints
+
+## Troubleshooting
+
+### Backend won't start
+
+**Error:** `Communications link failure` (MySQL)
+- Verify MySQL is running
+- Check database credentials in `application.properties`
+- Ensure database exists
+
+**Error:** `Port 8080 already in use`
+- Kill the process: `lsof -ti:8080 | xargs kill -9` (Mac/Linux)
+- Or change port in `application.properties`
+
+### Frontend won't connect to backend
+
+- Verify backend is running on the correct port
+- Check `VITE_API_BASE_URL` in frontend `.env` file
+- Check browser console for CORS errors
+- Ensure CORS is configured in backend
+
+### Authentication issues
+
+- Clear localStorage and try logging in again
+- Check JWT token expiration (24 hours by default)
+- Verify email is @usc.edu format
+
+### Database issues
+
+- Verify schema is initialized: `mvn spring-boot:run` creates tables automatically
+- Check MySQL logs for errors
+- Ensure user has proper permissions
+
+## Development Workflow
+
+1. **Start Backend:** `cd backend && mvn spring-boot:run`
+2. **Start Frontend:** `cd frontend && npm run dev`
+3. **Make Changes:** Edit code in respective directories
+4. **Test Locally:** Access app at http://localhost:5173
+5. **Run Tests:** Execute test suites in `tests/` directory
+6. **Commit:** `git add . && git commit -m "description"`
+7. **Deploy:** Push to Railway (backend) and Vercel (frontend)
+
+## Contributing
+
+This is a course project for CSCI 201 at USC. Contributions are welcome from team members.
+
+### Development Guidelines
+- Follow existing code structure and naming conventions
+- Write clear commit messages
+- Test your changes before committing
+- Update documentation when adding features
+- Keep sensitive data (passwords, secrets) in environment variables
+
+## Documentation
+
+- [Backend Documentation](backend/README.md) - Detailed backend setup and API docs
+- [Railway Deployment Guide](backend/RAILWAY_SETUP.md) - How to deploy to Railway
+- [Test Documentation](tests/RUN_TESTS.md) - How to run tests
+
+## License
+
+This project is for educational purposes as part of CSCI 201 coursework at USC.
+
+## Contact
+
+For questions or issues, please contact your team members or course instructor.
+
+---
+
+**Made with ❤️ by USC Students | Fight On! ✌️**
