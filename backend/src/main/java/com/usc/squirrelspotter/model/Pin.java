@@ -1,6 +1,7 @@
 package com.usc.squirrelspotter.model;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
@@ -26,10 +27,10 @@ public class Pin {
     private Integer userID;
 
     @Column(nullable = false, precision = 10, scale = 8)
-    private Double lat;
+    private BigDecimal lat;
 
     @Column(nullable = false, precision = 11, scale = 8)
-    private Double lng;
+    private BigDecimal lng;
 
     @Column(columnDefinition = "TEXT")
     private String description;
@@ -48,7 +49,7 @@ public class Pin {
     // Constructors
     public Pin() {}
 
-    public Pin(Integer userID, Double lat, Double lng, String description, String imageUrl) {
+    public Pin(Integer userID, BigDecimal lat, BigDecimal lng, String description, String imageUrl) {
         this.userID = userID;
         this.lat = lat;
         this.lng = lng;
@@ -73,19 +74,19 @@ public class Pin {
         this.userID = userID;
     }
 
-    public Double getLat() {
+    public BigDecimal getLat() {
         return lat;
     }
 
-    public void setLat(Double lat) {
+    public void setLat(BigDecimal lat) {
         this.lat = lat;
     }
 
-    public Double getLng() {
+    public BigDecimal getLng() {
         return lng;
     }
 
-    public void setLng(Double lng) {
+    public void setLng(BigDecimal lng) {
         this.lng = lng;
     }
 

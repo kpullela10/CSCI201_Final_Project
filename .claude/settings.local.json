@@ -3,7 +3,13 @@
     "allow": [
       "Bash(npm:*)",
       "Bash(dir \"C:\\Program Files\\nodejs\")",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(java:*)",
+      "Bash(brew list:*)",
+      "Bash(brew install:*)",
+      "Bash(mvn clean:*)",
+      "Bash(mvn compile:*)",
+      "Bash(mvn spring-boot:run:*)"
     ],
     "deny": [],
     "ask": []

@@ -15,25 +15,34 @@ public class CorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Allow frontend origins (localhost and production)
-        configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:5173",  // Vite dev server
-                "http://localhost:3000",  // Alternative React dev server
-                "https://*.vercel.app",   // Vercel deployments
-                "*"                       // Allow all for development (restrict in production!)
+        // Allow frontend origins
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:5173",   // Vite dev server
+                "http://localhost:3000",   // Alternative React dev server
+                "https://*.vercel.app",    // Vercel deployments
+                "https://*.railway.app"    // Railway deployments
         ));
 
-        // Allow all HTTP methods
+        // Allow standard HTTP methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
 
-        // Allow all headers
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+        // Allow common headers
+        configuration.setAllowedHeaders(Arrays.asList(
+                "Authorization",
+                "Content-Type",
+                "Accept",
+                "Origin",
+                "X-Requested-With"
+        ));
 
-        // Allow credentials (cookies, authorization headers, etc.)
-        configuration.setAllowCredentials(false); // Set to false when using "*" origin
+        // Allow credentials (cookies, authorization headers)
+        configuration.setAllowCredentials(true);
 
-        // Expose headers
+        // Expose Authorization header to frontend
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
+
+        // Cache preflight response for 1 hour
+        configuration.setMaxAge(3600L);
 
         // Apply CORS configuration to all endpoints
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
