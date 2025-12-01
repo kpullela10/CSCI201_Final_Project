@@ -15,45 +15,71 @@ export function useWebSocketPins(filter: 'all' | 'my' = 'all') {
   const pollIntervalRef = useRef<number | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
   const reconnectAttemptsRef = useRef(0);
+  const isMountedRef = useRef(true);
   const MAX_RECONNECT_ATTEMPTS = 5;
 
   const fetchPins = useCallback(async () => {
+    if (!isMountedRef.current) return;
+    
     try {
       setIsLoading(true);
       const fetchedPins = filter === 'my' ? await getMyPins() : await getWeeklyPins();
-      setPins(fetchedPins);
+      if (isMountedRef.current) {
+        setPins(fetchedPins);
+      }
     } catch (error) {
       console.error('Failed to fetch pins:', error);
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [filter]);
 
-  const startPolling = () => {
-    // Poll every 30 seconds as fallback
+  const startPolling = useCallback(() => {
     if (pollIntervalRef.current) {
       clearInterval(pollIntervalRef.current);
     }
 
-    pollIntervalRef.current = window.setInterval(async () => {
-      await fetchPins();
+    pollIntervalRef.current = window.setInterval(() => {
+      fetchPins();
     }, 30000);
-  };
+  }, [fetchPins]);
 
-  const connectWebSocket = () => {
+  const connectWebSocket = useCallback(() => {
+    // Don't create new connection if one already exists and is open
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      return;
+    }
+
     const token = localStorage.getItem('authToken');
-    const wsUrl = token
-      ? `${WS_URL}/ws/pins?token=${token}`
-      : `${WS_URL}/ws/pins`;
+    
+    if (!token) {
+      console.log('No auth token available, waiting...');
+      // Try again after a short delay
+      reconnectTimeoutRef.current = window.setTimeout(() => {
+        if (isMountedRef.current) {
+          connectWebSocket();
+        }
+      }, 1000);
+      return;
+    }
+
+    const wsUrl = `${WS_URL}/ws/pins?token=${token}`;
 
     try {
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
+        if (!isMountedRef.current) {
+          ws.close();
+          return;
+        }
+        
         setIsConnected(true);
         reconnectAttemptsRef.current = 0;
-        console.log('WebSocket connected');
-        // Clear polling if WebSocket is connected
+        console.log('WebSocket connected successfully');
+        
         if (pollIntervalRef.current) {
           clearInterval(pollIntervalRef.current);
           pollIntervalRef.current = null;
@@ -61,12 +87,13 @@ export function useWebSocketPins(filter: 'all' | 'my' = 'all') {
       };
 
       ws.onmessage = (event) => {
+        if (!isMountedRef.current) return;
+        
         try {
           const data = JSON.parse(event.data);
           const newPins = Array.isArray(data) ? data : [data];
 
           setPins((prevPins) => {
-            // Merge new pins without duplicates
             const pinMap = new Map(prevPins.map((pin) => [pin.pinID, pin]));
             newPins.forEach((pin: Pin) => {
               pinMap.set(pin.pinID, pin);
@@ -80,22 +107,30 @@ export function useWebSocketPins(filter: 'all' | 'my' = 'all') {
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
+        if (ws.readyState === WebSocket.CONNECTING) {
+          console.error('Error during connection attempt');
+        }
         setIsConnected(false);
       };
 
-      ws.onclose = () => {
-        setIsConnected(false);
-        console.log('WebSocket disconnected, falling back to polling');
+      ws.onclose = (event) => {
+        if (!isMountedRef.current) return;
         
-        // Try to reconnect if we haven't exceeded max attempts
+        setIsConnected(false);
+        console.log(`WebSocket closed (code: ${event.code}, reason: ${event.reason || 'none'}, wasClean: ${event.wasClean})`);
+        
         if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
           reconnectAttemptsRef.current += 1;
           const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+          console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
+          
           reconnectTimeoutRef.current = window.setTimeout(() => {
-            connectWebSocket();
+            if (isMountedRef.current) {
+              connectWebSocket();
+            }
           }, delay);
         } else {
-          // Start polling as fallback after max reconnect attempts
+          console.log('Max reconnect attempts reached, falling back to polling');
           startPolling();
         }
       };
@@ -106,24 +141,31 @@ export function useWebSocketPins(filter: 'all' | 'my' = 'all') {
       setIsConnected(false);
       startPolling();
     }
-  };
+  }, [startPolling]);
 
   // Fetch pins when filter changes
   useEffect(() => {
     fetchPins();
-  }, [filter]);
+  }, [fetchPins]);
 
+  // Initialize WebSocket connection on mount
   useEffect(() => {
-    // Initial fetch
-    fetchPins();
+    isMountedRef.current = true;
+    
 
-    // Try to establish WebSocket connection
-    connectWebSocket();
+    const initTimeout = setTimeout(() => {
+      if (isMountedRef.current) {
+        connectWebSocket();
+      }
+    }, 100);
 
-    // Cleanup
     return () => {
+      isMountedRef.current = false;
+      clearTimeout(initTimeout);
+      
       if (wsRef.current) {
         wsRef.current.close();
+        wsRef.current = null;
       }
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
@@ -132,9 +174,8 @@ export function useWebSocketPins(filter: 'all' | 'my' = 'all') {
         clearTimeout(reconnectTimeoutRef.current);
       }
     };
-  }, []);
+  }, [connectWebSocket]);
 
-  // Filter pins based on filter type (already handled by API, but double-check)
   const filteredPins = useMemo(() => {
     if (filter === 'my' && user) {
       return pins.filter((pin) => pin.userID === user.userID);
@@ -144,4 +185,3 @@ export function useWebSocketPins(filter: 'all' | 'my' = 'all') {
 
   return { pins: filteredPins, isConnected, isLoading };
 }
-
