@@ -26,12 +26,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         try {
-            // Get JWT token from Authorization header
+            String token = null;
+
+            // First, try to get token from Authorization header (for HTTP requests)
             String authHeader = request.getHeader("Authorization");
-
             if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7); // Remove "Bearer " prefix
+                token = authHeader.substring(7); // Remove "Bearer " prefix
+            }
+            
+            // If no token in header, try query parameter (for WebSocket handshakes)
+            if (token == null) {
+                token = request.getParameter("token");
+            }
 
+            if (token != null && !token.isEmpty()) {
                 // Validate token
                 if (jwtUtil.validateToken(token) && !jwtUtil.isTokenExpired(token)) {
                     // Extract user info from token
@@ -44,10 +52,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     // Set authentication in security context
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+                    logger.debug("JWT authentication successful for userID: " + userID);
+                } else {
+                    logger.debug("JWT token validation failed (expired or invalid)");
                 }
+            } else {
+                logger.debug("No JWT token found in Authorization header or query parameter");
             }
         } catch (Exception e) {
-            logger.error("Cannot set user authentication: {}", e);
+            logger.error("Cannot set user authentication: " + e.getMessage(), e);
         }
 
         filterChain.doFilter(request, response);

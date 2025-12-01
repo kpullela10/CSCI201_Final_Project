@@ -38,13 +38,26 @@ export async function getMyPins(): Promise<Pin[]> {
 }
 
 export async function createPin(formData: FormData): Promise<Pin> {
+  const token = localStorage.getItem('authToken');
+  
+  if (!token) {
+    throw new Error('You must be logged in to create a pin');
+  }
+  
+  const headers: HeadersInit = {};
+  // Only add Authorization header, don't set Content-Type (browser will set it with boundary for FormData)
+  headers['Authorization'] = `Bearer ${token}`;
+  
   const response = await fetch(`${API_BASE_URL}/api/pins`, {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers: headers,
     body: formData,
   });
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new Error('Authentication required. Please log in again.');
+    }
     if (response.status === 429) {
       throw new Error("You've reached the pin limit (4–5 pins per 30 minutes). Try again later.");
     }

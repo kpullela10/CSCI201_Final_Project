@@ -39,7 +39,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/leaderboard").permitAll()  // Public: view leaderboard
                         .requestMatchers("/api/users/{userID}/pins").permitAll()  // Public: view user pins
                         .requestMatchers("/ws/**").permitAll()  // Public: WebSocket (Pin/Maps team)
-
+                        .requestMatchers("/uploads/**").permitAll()  // Public: serve uploaded images
                         // Protected endpoints (authentication required)
                         .requestMatchers("/api/pins/my").authenticated()  // Protected: get my pins
                         .requestMatchers("/api/pins").authenticated()  // Protected: create pin

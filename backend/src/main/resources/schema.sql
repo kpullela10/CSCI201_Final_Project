@@ -46,26 +46,26 @@ CREATE TABLE IF NOT EXISTS pins (
 -- The Leaderboard team can use this query pattern:
 --
 -- Weekly leaderboard:
--- SELECT
---     u.userID,
---     u.username,
---     COUNT(p.pinID) as weekly_pins,
---     (SELECT COUNT(*) FROM pins WHERE userID = u.userID) as total_pins
--- FROM users u
--- LEFT JOIN pins p ON u.userID = p.userID
---     AND p.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
--- GROUP BY u.userID, u.username
--- ORDER BY weekly_pins DESC;
---
--- All-time leaderboard:
--- SELECT
---     u.userID,
---     u.username,
---     COUNT(p.pinID) as total_pins
--- FROM users u
--- LEFT JOIN pins p ON u.userID = p.userID
--- GROUP BY u.userID, u.username
--- ORDER BY total_pins DESC;
+SELECT
+    u.userID,
+    u.username,
+    COUNT(p.pinID) as weekly_pins,
+    (SELECT COUNT(*) FROM pins WHERE userID = u.userID) as total_pins
+FROM users u
+LEFT JOIN pins p ON u.userID = p.userID
+    AND p.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+GROUP BY u.userID, u.username
+ORDER BY weekly_pins DESC;
+
+All-time leaderboard:
+SELECT
+    u.userID,
+    u.username,
+    COUNT(p.pinID) as total_pins
+FROM users u
+LEFT JOIN pins p ON u.userID = p.userID
+GROUP BY u.userID, u.username
+ORDER BY total_pins DESC;
 
 -- ============================================================
 -- Sample Data (Optional - for testing)
