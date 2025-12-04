@@ -17,10 +17,8 @@ public class CorsConfig {
 
         // Allow frontend origins
         configuration.setAllowedOriginPatterns(Arrays.asList(
-                "http://localhost:*",      // Localhost any port
-                "http://127.0.0.1:*",      // Localhost IP any port
-                "http://10.*.*.*:*",       // Local network 10.x.x.x
-                "http://192.168.*.*:*",    // Local network 192.168.x.x
+                "http://localhost:5173",   // Vite dev server
+                "http://localhost:3000",   // Alternative React dev server
                 "https://*.vercel.app",    // Vercel deployments
                 "https://*.railway.app"    // Railway deployments
         ));
