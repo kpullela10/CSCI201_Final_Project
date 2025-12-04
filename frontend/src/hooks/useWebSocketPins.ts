@@ -6,6 +6,13 @@ import { useAuth } from './useAuth';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 const WS_URL = API_BASE_URL.replace(/^http/, 'ws');
 
+const POLL_INTERVAL_MS = 30000;
+const INITIAL_RECONNECT_DELAY_MS = 1000;
+const MAX_RECONNECT_DELAY_MS = 30000;
+const MAX_RECONNECT_ATTEMPTS = 5;
+const AUTH_RETRY_DELAY_MS = 1000;
+const INIT_DELAY_MS = 100;
+
 export function useWebSocketPins(filter: 'all' | 'my' = 'all') {
   const [pins, setPins] = useState<Pin[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -16,7 +23,6 @@ export function useWebSocketPins(filter: 'all' | 'my' = 'all') {
   const reconnectTimeoutRef = useRef<number | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const isMountedRef = useRef(true);
-  const MAX_RECONNECT_ATTEMPTS = 5;
 
   const fetchPins = useCallback(async () => {
     if (!isMountedRef.current) return;
@@ -27,8 +33,8 @@ export function useWebSocketPins(filter: 'all' | 'my' = 'all') {
       if (isMountedRef.current) {
         setPins(fetchedPins);
       }
-    } catch (error) {
-      console.error('Failed to fetch pins:', error);
+    } catch {
+      // Network error, will retry on next poll
     } finally {
       if (isMountedRef.current) {
         setIsLoading(false);
@@ -43,11 +49,10 @@ export function useWebSocketPins(filter: 'all' | 'my' = 'all') {
 
     pollIntervalRef.current = window.setInterval(() => {
       fetchPins();
-    }, 30000);
+    }, POLL_INTERVAL_MS);
   }, [fetchPins]);
 
   const connectWebSocket = useCallback(() => {
-    // Don't create new connection if one already exists and is open
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       return;
     }
@@ -55,13 +60,11 @@ export function useWebSocketPins(filter: 'all' | 'my' = 'all') {
     const token = localStorage.getItem('authToken');
     
     if (!token) {
-      console.log('No auth token available, waiting...');
-      // Try again after a short delay
       reconnectTimeoutRef.current = window.setTimeout(() => {
         if (isMountedRef.current) {
           connectWebSocket();
         }
-      }, 1000);
+      }, AUTH_RETRY_DELAY_MS);
       return;
     }
 
@@ -75,11 +78,10 @@ export function useWebSocketPins(filter: 'all' | 'my' = 'all') {
           ws.close();
           return;
         }
-        
+
         setIsConnected(true);
         reconnectAttemptsRef.current = 0;
-        console.log('WebSocket connected successfully');
-        
+
         if (pollIntervalRef.current) {
           clearInterval(pollIntervalRef.current);
           pollIntervalRef.current = null;
@@ -100,64 +102,56 @@ export function useWebSocketPins(filter: 'all' | 'my' = 'all') {
             });
             return Array.from(pinMap.values());
           });
-        } catch (error) {
-          console.error('Failed to parse WebSocket message:', error);
+        } catch {
+          // Invalid message format, ignore
         }
       };
 
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        if (ws.readyState === WebSocket.CONNECTING) {
-          console.error('Error during connection attempt');
-        }
+      ws.onerror = () => {
         setIsConnected(false);
       };
 
-      ws.onclose = (event) => {
+      ws.onclose = () => {
         if (!isMountedRef.current) return;
-        
+
         setIsConnected(false);
-        console.log(`WebSocket closed (code: ${event.code}, reason: ${event.reason || 'none'}, wasClean: ${event.wasClean})`);
-        
+
         if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
           reconnectAttemptsRef.current += 1;
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
-          console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
-          
+          const delay = Math.min(
+            INITIAL_RECONNECT_DELAY_MS * Math.pow(2, reconnectAttemptsRef.current),
+            MAX_RECONNECT_DELAY_MS
+          );
+
           reconnectTimeoutRef.current = window.setTimeout(() => {
             if (isMountedRef.current) {
               connectWebSocket();
             }
           }, delay);
         } else {
-          console.log('Max reconnect attempts reached, falling back to polling');
           startPolling();
         }
       };
 
       wsRef.current = ws;
-    } catch (error) {
-      console.error('Failed to create WebSocket:', error);
+    } catch {
       setIsConnected(false);
       startPolling();
     }
   }, [startPolling]);
 
-  // Fetch pins when filter changes
   useEffect(() => {
     fetchPins();
   }, [fetchPins]);
 
-  // Initialize WebSocket connection on mount
   useEffect(() => {
     isMountedRef.current = true;
-    
 
     const initTimeout = setTimeout(() => {
       if (isMountedRef.current) {
         connectWebSocket();
       }
-    }, 100);
+    }, INIT_DELAY_MS);
 
     return () => {
       isMountedRef.current = false;

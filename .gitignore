@@ -27,3 +27,6 @@ dist-ssr
 .env
 .env.local
 
+# Claude Code settings (may contain allowed commands with credentials)
+.claude/
+
