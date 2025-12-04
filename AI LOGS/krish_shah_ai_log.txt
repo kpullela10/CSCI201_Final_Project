@@ -1,0 +1,331 @@
+Student Name: Krish Shah
+Date: December 4, 2024
+
+=================================================================
+ENTRY 1: Setting Up Unit Test Framework with Mockito
+=================================================================
+
+PROMPT (Clarity):
+"I need to write comprehensive unit tests for my Spring Boot backend services 
+(AuthService, PinService, and LeaderboardService). The tests should use JUnit 5 
+and Mockito to mock dependencies like repositories and external services. I want 
+to test both success cases and error handling, including validation logic for 
+things like USC email requirements, coordinate bounds, and rate limiting. Help me 
+set up the test structure with proper mocking annotations and test lifecycle methods."
+
+ISSUE (Specificity):
+The AI initially generated tests using older JUnit 4 annotations (@RunWith, @Before) 
+instead of JUnit 5 annotations. Additionally, some tests weren't properly isolating 
+dependencies - for example, the AuthService tests were attempting to actually hash 
+passwords with Argon2 instead of mocking the behavior, which made tests slow and 
+difficult to control. The test methods also lacked clear naming conventions that 
+described what was being tested and the expected outcome.
+
+FIX (Correctness):
+Updated all tests to use JUnit 5 annotations:
+- Changed @RunWith(MockitoJUnitRunner.class) to @ExtendWith(MockitoExtension.class)
+- Changed @Before to @BeforeEach
+- Used proper JUnit 5 assertions (assertThrows, assertNotNull, etc.)
+
+For the Argon2 issue in AuthService tests, acknowledged that password hashing is 
+difficult to mock and simplified the login success test while keeping all the 
+validation tests intact. Added a comment explaining that full password verification 
+testing would require integration tests with @SpringBootTest or using @Spy.
+
+Standardized test naming to follow the pattern: test[MethodName]_[Scenario]_[ExpectedResult]
+For example: testSignup_MissingEmail_ThrowsBadRequestException
+
+EXPLANATION (Depth):
+Using @ExtendWith(MockitoExtension.class) enables Mockito's annotation processing, 
+allowing @Mock and @InjectMocks to work properly. The @Mock annotation creates a 
+mock object that we can control using when().thenReturn() statements, while 
+@InjectMocks automatically injects those mocks into the service being tested. This 
+isolation is crucial for unit testing - we want to test the service logic without 
+depending on actual database operations or external libraries. The clear naming 
+convention makes tests self-documenting and helps quickly identify what failed when 
+a test breaks.
+
+=================================================================
+ENTRY 2: Testing Validation Logic and Exception Handling
+=================================================================
+
+PROMPT (Clarity):
+"For the AuthService, I need tests that verify email validation (must contain 
+@usc.edu), prevent duplicate usernames and emails, and handle missing required 
+fields. Each validation failure should throw a specific exception with a clear 
+message. Show me how to test exception throwing using JUnit 5 assertions and verify 
+that the repository methods are never called when validation fails."
+
+ISSUE (Specificity):
+Initial tests used try-catch blocks to test exceptions, which is verbose and doesn't 
+fail the test if the exception isn't thrown. The AI also didn't verify that 
+downstream operations were prevented when validation failed - for example, when email 
+validation fails, we need to ensure userRepository.save() is never called, but the 
+original tests didn't check this. Additionally, some tests weren't checking the exact 
+error message, just that an exception was thrown.
+
+FIX (Correctness):
+Replaced try-catch exception testing with assertThrows:
+
+BadRequestException exception = assertThrows(BadRequestException.class, 
+    () -> authService.signup(validSignupRequest));
+assertEquals("Email is required", exception.getMessage());
+
+Added verify statements to ensure repository methods aren't called on validation 
+failures:
+
+verify(userRepository, never()).save(any());
+
+Created separate test methods for each validation scenario:
+- testSignup_MissingEmail_ThrowsBadRequestException
+- testSignup_EmptyEmail_ThrowsBadRequestException  
+- testSignup_NonUSCEmail_ThrowsBadRequestException
+- testSignup_DuplicateEmail_ThrowsConflictException
+- testSignup_DuplicateUsername_ThrowsConflictException
+
+Each test verifies both the exception type and the exact error message.
+
+EXPLANATION (Depth):
+The assertThrows method is the JUnit 5 way to test exceptions - it executes the 
+lambda, catches the expected exception, and returns it for further assertions. If the 
+exception isn't thrown, the test fails. Using verify(repository, never()).save(any()) 
+ensures fail-fast behavior - when validation fails, we don't waste resources on 
+database operations. This pattern of having one assertion per test method follows the 
+Single Responsibility Principle for tests, making failures easier to diagnose. 
+Testing exact error messages ensures our API returns helpful information to clients.
+
+=================================================================
+ENTRY 3: Testing Rate Limiting with Time-Based Logic
+=================================================================
+
+PROMPT (Clarity):
+"The PinService has rate limiting logic that restricts users to 5 pins per 30 
+minutes. This is implemented using a repository query that counts pins created after 
+a specific timestamp. How do I test this without actually waiting 30 minutes or using 
+real timestamps? I need to mock the repository to return different counts and verify 
+that TooManyRequestsException is thrown when the limit is reached."
+
+ISSUE (Specificity):
+The AI initially created tests that used actual Thread.sleep() calls and real 
+timestamps, which would make tests slow and flaky. The rate limit check in PinService 
+uses LocalDateTime.now().minusMinutes(30) to calculate the window start, but the 
+tests weren't accounting for this dynamic timestamp calculation. Some tests also 
+didn't verify the exact error message or check that the pin was never saved when rate 
+limit was exceeded.
+
+FIX (Correctness):
+Mocked the repository count method to return values just below and at the limit:
+
+// User has created 2 pins - should succeed
+when(pinRepository.countPinsByUserIDAndCreatedAtAfter(anyInt(), any(LocalDateTime.class)))
+    .thenReturn(2L);
+
+// User has created 5 pins - should fail
+when(pinRepository.countPinsByUserIDAndCreatedAtAfter(anyInt(), any(LocalDateTime.class)))
+    .thenReturn(5L);
+
+Created testCreatePin_RateLimitExceeded_ThrowsTooManyRequestsException that verifies:
+1. Exception is thrown when count >= 5
+2. Error message contains "Rate limit exceeded"
+3. Repository save() is never called
+
+Used any(LocalDateTime.class) matcher because we can't predict the exact timestamp 
+the service will calculate, but we know it will pass some LocalDateTime to the 
+repository.
+
+EXPLANATION (Depth):
+Mocking time-based logic is essential for deterministic, fast tests. By controlling 
+what the repository returns for countPinsByUserIDAndCreatedAtAfter(), we can simulate 
+any scenario (0 pins, 4 pins, 5 pins) instantly. The any(LocalDateTime.class) matcher 
+is necessary because we're testing the service's behavior, not the exact timestamp 
+calculation - that's an implementation detail. This approach tests the business logic 
+(reject when count >= 5) without coupling to timing details. The verify that save() 
+isn't called ensures we fail fast and don't waste resources when rate limiting kicks in.
+
+=================================================================
+ENTRY 4: Testing Coordinate Validation with Boundary Values
+=================================================================
+
+PROMPT (Clarity):
+"The PinService validates that latitude is between -90 and 90, and longitude is 
+between -180 and 180. I need tests that check these boundaries - both invalid values 
+outside the range and valid values at the exact boundaries. Show me how to use 
+BigDecimal for precise coordinate testing and create separate test cases for each 
+boundary violation."
+
+ISSUE (Specificity):
+Initial tests used double values instead of BigDecimal, which could cause precision 
+issues. The AI also only tested one invalid case per coordinate (e.g., only latitude 
+too high) and didn't test the boundary values themselves (exactly -90, 90, -180, 180). 
+Some tests weren't checking the exact error message to distinguish between latitude 
+and longitude validation failures.
+
+FIX (Correctness):
+Created BigDecimal constants in the test setup:
+
+BigDecimal validLat = new BigDecimal("34.0224");
+BigDecimal validLng = new BigDecimal("-118.2851");
+
+Created separate tests for each boundary violation:
+
+testCreatePin_InvalidLatitude_TooHigh_ThrowsBadRequestException:
+- Uses new BigDecimal("91.0")
+- Verifies message: "Latitude must be between -90 and 90"
+
+testCreatePin_InvalidLatitude_TooLow_ThrowsBadRequestException:
+- Uses new BigDecimal("-91.0")
+- Verifies same latitude error message
+
+testCreatePin_InvalidLongitude_TooHigh_ThrowsBadRequestException:
+- Uses new BigDecimal("181.0")
+- Verifies message: "Longitude must be between -180 and 180"
+
+testCreatePin_InvalidLongitude_TooLow_ThrowsBadRequestException:
+- Uses new BigDecimal("-181.0")
+- Verifies same longitude error message
+
+Each test ensures pinRepository.save() is never called.
+
+EXPLANATION (Depth):
+Using BigDecimal instead of double avoids floating-point precision errors that could 
+cause test flakiness. Geographic coordinates have specific valid ranges - latitude is 
+constrained by the poles (±90°) and longitude wraps at the international date line 
+(±180°). Testing boundary violations ensures our validation logic correctly rejects 
+impossible coordinates that would cause errors in mapping libraries or databases. 
+Having separate tests for each case (too high/too low, lat/lng) provides precise 
+failure information - if testCreatePin_InvalidLatitude_TooHigh fails, we know exactly 
+which validation check broke. This granularity is valuable for debugging and 
+regression testing.
+
+=================================================================
+ENTRY 5: Testing Pagination Logic in LeaderboardService
+=================================================================
+
+PROMPT (Clarity):
+"The LeaderboardService has pagination parameters (page number starting at 1, page 
+size 1-100) that need validation. The service converts 1-indexed pages to 0-indexed 
+for Spring Data. I need tests that verify: (1) page must be >= 1, (2) page size must 
+be 1-100, (3) the conversion to 0-indexed works correctly, and (4) pagination 
+parameters are passed correctly to the repository. Show me how to use ArgumentCaptor 
+or argThat to verify the Pageable object."
+
+ISSUE (Specificity):
+The AI initially generated tests that only checked the response data but didn't verify 
+that the correct pagination parameters were passed to the repository. For example, 
+when requesting page 2 with size 5, the test should verify that the repository 
+receives a Pageable with pageNumber=1 and pageSize=5 (0-indexed). The validation 
+tests also didn't cover all edge cases - only tested page size too large (101) but 
+not page size of 0 or negative values.
+
+FIX (Correctness):
+Added comprehensive validation tests:
+
+testGetLeaderboard_PageZero_ThrowsBadRequestException:
+- Verifies page=0 throws "Page must be greater than 0"
+
+testGetLeaderboard_NegativePage_ThrowsBadRequestException:
+- Verifies page=-1 throws same error
+
+testGetLeaderboard_PageSizeZero_ThrowsBadRequestException:
+- Verifies size=0 throws "Page size must be between 1 and 100"
+
+testGetLeaderboard_PageSizeTooLarge_ThrowsBadRequestException:
+- Verifies size=101 throws same error
+
+testGetLeaderboard_MaxPageSize_Success:
+- Verifies size=100 works and repository receives correct Pageable
+
+Created testGetLeaderboard_Weekly_Pagination that verifies conversion:
+
+verify(pinRepository, times(1)).findWeeklyLeaderboard(
+    any(LocalDateTime.class), 
+    argThat(pageable -> 
+        pageable.getPageNumber() == 1 && pageable.getPageSize() == 5)
+);
+
+This test requests page 2, size 5 and verifies the repository receives pageNumber=1 
+(0-indexed).
+
+EXPLANATION (Depth):
+Pagination is a common source of off-by-one errors because APIs often use 1-indexed 
+pages (user-friendly) while databases/ORMs use 0-indexed pages (programming-friendly). 
+Testing the conversion ensures we don't accidentally show page 1 results when the user 
+requests page 2. The argThat matcher lets us verify complex objects (Pageable) by 
+checking specific fields without needing exact equality. Validating page size bounds 
+(1-100) prevents abuse - allowing unlimited page size could let malicious users cause 
+out-of-memory errors by requesting millions of records. These boundary tests ensure 
+our API is robust against both honest mistakes and malicious inputs.
+
+=================================================================
+ENTRY 6: Testing WebSocket Broadcasting and Async Behavior
+=================================================================
+
+PROMPT (Clarity):
+"When a pin is successfully created, the PinService broadcasts it via WebSocket using 
+PinWebSocketHandler.broadcastPin(). I need to verify this happens in my tests, but I 
+don't want to actually start a WebSocket server. Show me how to mock the handler and 
+verify the broadcast method is called with the correct pin data after a successful 
+creation."
+
+ISSUE (Specificity):
+The AI didn't initially include WebSocket verification in the pin creation tests. When 
+I added the mock for PinWebSocketHandler, the first attempt used verify() incorrectly - 
+it tried to verify that broadcastPin was called with exact object equality, which failed 
+because the PinResponse is created inside the service method. The test also didn't 
+verify that broadcasting happens even when an image is uploaded, or that it doesn't 
+happen when validation fails.
+
+FIX (Correctness):
+Added @Mock for PinWebSocketHandler and @Autowired injection into PinService.
+
+In testCreatePin_Success_NoImage:
+
+doNothing().when(pinWebSocketHandler).broadcastPin(any(PinResponse.class));
+
+// ... create pin ...
+
+verify(pinWebSocketHandler, times(1)).broadcastPin(any(PinResponse.class));
+
+Created testCreatePin_Success_WithImage that also verifies broadcast happens.
+
+Created testCreatePin_RateLimitExceeded_ThrowsTooManyRequestsException that verifies:
+
+verify(pinWebSocketHandler, never()).broadcastPin(any());
+
+This ensures broadcasts only happen on successful creation, not when validation fails 
+or rate limits are exceeded.
+
+EXPLANATION (Depth):
+WebSockets enable real-time updates - when one user creates a pin, all connected 
+clients should see it immediately. Testing that broadcastPin() is called ensures this 
+critical feature works. Using any(PinResponse.class) instead of exact equality is 
+necessary because the PinResponse is constructed inside the service - we can't know 
+its exact identity. We verify the method is called, trusting that the service 
+constructs it correctly (which we can test separately). The verify(never()) tests are 
+equally important - we don't want to broadcast failed attempts or validation errors, 
+as that would confuse connected clients. This pattern of testing both positive 
+(broadcast on success) and negative (don't broadcast on failure) cases ensures robust 
+behavior.
+
+1. Learned to use JUnit 5 and Mockito effectively for unit testing Spring Boot 
+   services, including proper use of @ExtendWith, @Mock, and @InjectMocks annotations.
+
+2. Mastered testing exception handling with assertThrows() and verifying exact error 
+   messages to ensure clear API responses.
+
+3. Understood how to test time-based logic (rate limiting) without actual waits by 
+   mocking repository responses and using any(LocalDateTime.class) matchers.
+
+4. Applied boundary value testing to geographic coordinates, ensuring validation 
+   logic correctly rejects invalid but plausible inputs.
+
+5. Learned to verify method calls on mocks using verify() and argThat() matchers to 
+   test complex object parameters like Pageable.
+
+6. Understood the importance of testing both success and failure paths, including 
+   verifying that expensive operations (database writes, WebSocket broadcasts) don't 
+   happen when validation fails.
+
+7. Recognized that unit tests should be fast, deterministic, and isolated - mocking 
+   all dependencies to test only the service logic without real databases or external 
+   services.
