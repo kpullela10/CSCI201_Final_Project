@@ -24,6 +24,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         // Register plain WebSocket endpoint
         registry.addHandler(pinWebSocketHandler, "/ws/pins")
-                .setAllowedOriginPatterns("*"); // Allow all origins (configure for production)
+                .setAllowedOriginPatterns(
+                    "http://localhost:5173",
+                    "http://localhost:3000",
+                    "https://*.vercel.app",
+                    "https://*.railway.app"
+                );
     }
 }

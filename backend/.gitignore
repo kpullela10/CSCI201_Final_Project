@@ -67,3 +67,7 @@ uploads/*
 .env
 .env.local
 .env.*.local
+
+# Dev properties with credentials (use env vars instead)
+application-dev.properties
+src/main/resources/application-dev.properties
