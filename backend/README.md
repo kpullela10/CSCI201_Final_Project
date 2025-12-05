@@ -2,7 +2,18 @@
 
 Java/Spring Boot backend for the Squirrel Spotter USC web application.
 
-## ✅ Implemented Features (Authentication Module)
+## 🚀 Production Deployment
+
+**Backend URL:** `https://csci201finalproject-production.up.railway.app`
+
+The backend is fully deployed on Railway with:
+- ✅ MySQL database on Railway
+- ✅ JWT authentication
+- ✅ WebSocket support for real-time updates
+- ✅ Image upload and external URL support
+- ✅ CORS configured for Vercel frontend
+
+## ✅ Implemented Features
 
 - **User Authentication**
   - Signup with USC email validation (`@usc.edu` required)
@@ -21,27 +32,28 @@ Java/Spring Boot backend for the Squirrel Spotter USC web application.
   - CORS configuration for frontend integration
   - Public endpoints: `/api/auth/signup`, `/api/auth/login`
 
-## 🚧 TODO for Other Teams
+## ✅ Completed Features
 
-### Pin/Maps Team
-- Create `PinRepository` interface
-- Implement `PinService` with:
-  - `createPin()` - Create new pin with image upload
-  - `getWeeklyPins()` - Get pins from current week
+### Pin/Maps Module
+- ✅ `PinRepository` interface with JPA queries
+- ✅ `PinService` with:
+  - `createPin()` - Create new pin with image upload or external URL
+  - `getWeeklyPins()` - Get pins from last 7 days
   - `getMyPins()` - Get authenticated user's pins
   - `getPinById()` - Get pin details
   - Rate limiting (4-5 pins per 30 minutes)
-- Create `PinController` with REST endpoints
-- Implement WebSocket for real-time pin updates (`/ws/pins`)
-- Implement image upload handling (multipart/form-data)
+- ✅ `PinController` with REST endpoints
+- ✅ WebSocket for real-time pin updates (`/ws/pins`)
+- ✅ Image upload handling (multipart/form-data)
+- ✅ External image URL support (for default images from Pexels/Unsplash)
 
-### Leaderboard Team
-- Create `LeaderboardService` with:
+### Leaderboard Module
+- ✅ `LeaderboardService` with:
   - `getWeeklyLeaderboard()` - Top users by weekly pins
   - `getAllTimeLeaderboard()` - Top users by total pins
   - `getUserPins()` - Get all pins by a user
-- Create `LeaderboardController` with REST endpoints
-- Use SQL queries in `schema.sql` as reference
+- ✅ `LeaderboardController` with REST endpoints
+- ✅ Pagination support (20 entries per page)
 
 ## Prerequisites
 
@@ -171,6 +183,112 @@ Login with existing account.
 **Error Responses:**
 - `400 Bad Request` - Missing fields
 - `401 Unauthorized` - Invalid credentials
+
+### Pins
+
+#### POST `/api/pins`
+Create a new pin. Supports both file uploads and external image URLs.
+
+**Request (with file upload):**
+```
+Content-Type: multipart/form-data
+- latitude: double
+- longitude: double
+- description: string
+- image: file (optional)
+```
+
+**Request (with external URL):**
+```
+Content-Type: application/json
+{
+  "latitude": 34.0224,
+  "longitude": -118.2851,
+  "description": "Saw a squirrel!",
+  "image_url": "https://images.pexels.com/photos/..."
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "pinID": 1,
+  "latitude": 34.0224,
+  "longitude": -118.2851,
+  "description": "Saw a squirrel!",
+  "imageUrl": "https://images.pexels.com/photos/...",
+  "userID": 1,
+  "username": "testuser",
+  "createdAt": "2025-12-05T02:00:00"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request` - Invalid input or rate limit exceeded
+- `401 Unauthorized` - Missing or invalid JWT token
+
+#### GET `/api/pins/weekly`
+Get all pins from the last 7 days.
+
+**Response (200 OK):**
+```json
+[
+  {
+    "pinID": 1,
+    "latitude": 34.0224,
+    "longitude": -118.2851,
+    "description": "Saw a squirrel!",
+    "imageUrl": "https://...",
+    "userID": 1,
+    "username": "testuser",
+    "createdAt": "2025-12-05T02:00:00"
+  }
+]
+```
+
+#### GET `/api/pins/my`
+Get current authenticated user's pins.
+
+#### GET `/api/pins/:pinID`
+Get pin details by ID.
+
+### Leaderboard
+
+#### GET `/api/leaderboard?type={weekly|all-time}&page={page}&pageSize={size}`
+Get leaderboard with pagination.
+
+**Query Parameters:**
+- `type`: `weekly` or `all-time` (default: `weekly`)
+- `page`: Page number (default: 1)
+- `pageSize`: Entries per page (default: 20)
+
+**Response (200 OK):**
+```json
+{
+  "users": [
+    {
+      "userID": 1,
+      "username": "testuser",
+      "pinCount": 5
+    }
+  ],
+  "currentPage": 1,
+  "totalPages": 1,
+  "totalUsers": 1
+}
+```
+
+#### GET `/api/users/:userID/pins`
+Get all pins by a specific user.
+
+### WebSocket
+
+#### `/ws/pins`
+Real-time pin updates. Connect using WebSocket:
+- Production: `wss://your-backend.railway.app/ws/pins`
+- Local: `ws://localhost:8080/ws/pins`
+
+The server broadcasts new pin creations to all connected clients.
 
 ### Protected Endpoints (Require JWT Token)
 
@@ -313,12 +431,32 @@ Update `frontend/.env`:
 VITE_API_BASE_URL=https://your-backend.railway.app
 ```
 
+## Recent Updates
+
+### Image Handling
+- ✅ Added support for external image URLs via `image_url` parameter
+- ✅ Default images from Pexels/Unsplash can be stored directly (no file upload needed)
+- ✅ File uploads still supported for custom images
+- ✅ External URLs stored directly in database, avoiding ephemeral filesystem issues on Railway
+
+### WebSocket Configuration
+- ✅ Secure WebSocket (`wss://`) automatically used for HTTPS backends
+- ✅ Real-time pin updates working in production
+- ✅ Frontend automatically detects and uses correct protocol
+
+### Security Configuration
+- ✅ `/uploads/**` path configured for static file access
+- ✅ CORS configured for Vercel frontend deployment
+- ✅ JWT authentication on all protected endpoints
+
 ## Security Notes
 
 - **Passwords:** Hashed with Argon2 (industry-standard, secure)
 - **JWT Tokens:** 24-hour expiration (configurable in `application.properties`)
-- **CORS:** Configured to allow frontend origins (update in `CorsConfig.java` for production)
+- **CORS:** Configured to allow frontend origins (Vercel deployment)
 - **Email Validation:** Only `@usc.edu` emails allowed for signup
+- **Rate Limiting:** Pin creation limited to 4-5 pins per 30 minutes per user
+- **Static Resources:** `/uploads/**` path configured for image access
 
 ## Troubleshooting
 
@@ -343,25 +481,22 @@ Port 8080 was already in use
 
 **Solution:** Kill the process using port 8080 or change `server.port` in `application.properties`.
 
-## Next Steps for Your Team
+## Production Deployment Notes
 
-1. **Pin/Maps Team:**
-   - Implement pin CRUD operations
-   - Add image upload handling
-   - Implement rate limiting
-   - Add WebSocket for real-time updates
-   - Reference: `BACKEND_INTEGRATION.md` in project root
+### Railway Deployment
+- Backend is deployed on Railway at `https://csci201finalproject-production.up.railway.app`
+- MySQL database hosted on Railway (ephemeral filesystem)
+- Environment variables configured in Railway dashboard
 
-2. **Leaderboard Team:**
-   - Implement leaderboard queries
-   - Add pagination support
-   - Create REST endpoints
-   - Reference: `BACKEND_INTEGRATION.md` in project root
+### Image Storage Considerations
+- **Uploaded files:** Stored in `/uploads/` directory (ephemeral on Railway)
+- **External URLs:** Recommended for production (default images from Pexels/Unsplash)
+- **Future improvement:** Consider cloud storage (S3, Cloudinary) for persistent file uploads
 
-3. **Frontend Team:**
-   - Update `VITE_API_BASE_URL` to point to backend
-   - Test signup/login flow
-   - Integrate JWT tokens in API requests
+### WebSocket in Production
+- Frontend automatically uses `wss://` (secure WebSocket) for HTTPS backends
+- WebSocket endpoint: `/ws/pins`
+- Real-time updates working correctly in production environment
 
 ## Documentation
 
