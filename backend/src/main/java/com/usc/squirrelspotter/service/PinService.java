@@ -41,16 +41,17 @@ public class PinService {
     private static final int RATE_LIMIT_WINDOW_MINUTES = 30;
 
     /**
-     * Create a new pin with optional image upload
+     * Create a new pin with optional image upload or external image URL
      * @param userID Authenticated user ID
      * @param lat Latitude
      * @param lng Longitude
      * @param description Optional description
-     * @param imageFile Optional image file
+     * @param imageFile Optional image file (for file uploads)
+     * @param imageUrl Optional external image URL (for default images)
      * @return Created pin response
      */
     public PinResponse createPin(Integer userID, BigDecimal lat, BigDecimal lng,
-                                 String description, MultipartFile imageFile) {
+                                 String description, MultipartFile imageFile, String imageUrl) {
         // Validate input
         if (lat == null || lng == null) {
             throw new BadRequestException("Latitude and longitude are required");
@@ -67,18 +68,22 @@ public class PinService {
         // Check rate limiting
         checkRateLimit(userID);
 
-        // Save image if provided
-        String imageUrl = null;
+        // Handle image: either file upload OR external URL
+        String finalImageUrl = null;
         if (imageFile != null && !imageFile.isEmpty()) {
+            // Save uploaded file
             try {
-                imageUrl = imageStorageService.saveImage(imageFile);
+                finalImageUrl = imageStorageService.saveImage(imageFile);
             } catch (IOException e) {
                 throw new BadRequestException("Failed to save image: " + e.getMessage());
             }
+        } else if (imageUrl != null && !imageUrl.trim().isEmpty()) {
+            // Use external URL directly (for default images)
+            finalImageUrl = imageUrl.trim();
         }
 
         // Create and save pin
-        Pin pin = new Pin(userID, lat, lng, description, imageUrl);
+        Pin pin = new Pin(userID, lat, lng, description, finalImageUrl);
         pin = pinRepository.save(pin);
 
         // Get username for response

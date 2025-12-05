@@ -26,7 +26,7 @@ public class PinController {
     private PinService pinService;
 
     /**
-     * POST /api/pins - Create a new pin with optional image upload
+     * POST /api/pins - Create a new pin with optional image upload or external image URL
      * Requires authentication
      */
     @PostMapping
@@ -35,6 +35,7 @@ public class PinController {
             @RequestParam("lng") BigDecimal lng,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "image", required = false) MultipartFile imageFile,
+            @RequestParam(value = "image_url", required = false) String imageUrl,
             Authentication authentication) {
         try {
             if (authentication == null || authentication.getPrincipal() == null) {
@@ -42,7 +43,7 @@ public class PinController {
                         .body(new ErrorResponse("Authentication required"));
             }
             Integer userID = (Integer) authentication.getPrincipal();
-            PinResponse response = pinService.createPin(userID, lat, lng, description, imageFile);
+            PinResponse response = pinService.createPin(userID, lat, lng, description, imageFile, imageUrl);
             return ResponseEntity.status(HttpStatus.CREATED).body(response);
         } catch (BadRequestException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
