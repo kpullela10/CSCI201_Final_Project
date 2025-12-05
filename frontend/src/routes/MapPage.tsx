@@ -31,6 +31,8 @@ export function MapPage() {
   };
 
   const handlePinCreated = (newPin: Pin) => {
+    // newPin parameter provided by PinForm callback but not used here
+    void newPin;
     setShowPinForm(false);
     setPinFormLocation(null);
     setSuccessMessage('Pin created successfully!');
