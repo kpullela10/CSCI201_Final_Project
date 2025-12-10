@@ -2,6 +2,22 @@ import type { LeaderboardEntry, Pin } from '../types';
 import { useState } from 'react';
 import { getUserPins } from '../api/leaderboard';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
+function getImageUrl(imageUrl: string | undefined): string | null {
+  if (!imageUrl) return null;
+  
+  // If it's already a full URL (starts with http:// or https://), return as-is
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  
+  // Otherwise, prepend the backend API base URL
+  // Remove leading slash if present to avoid double slashes
+  const cleanUrl = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
+  return `${API_BASE_URL}/${cleanUrl}`;
+}
+
 interface LeaderboardTableProps {
   entries: LeaderboardEntry[];
   onUserClick?: (userID: number) => void;
@@ -101,15 +117,21 @@ export function LeaderboardTable({ entries, onUserClick }: LeaderboardTableProps
                 <p className="text-gray-500">No pins found for this user.</p>
               ) : (
                 <div className="space-y-4">
-                  {selectedUserPins.map((pin) => (
-                    <div key={pin.pinID} className="border border-gray-200 rounded-md p-4">
-                      {pin.image_url && (
-                        <img
-                          src={pin.image_url}
-                          alt="Squirrel"
-                          className="w-full h-48 object-cover rounded-md mb-2"
-                        />
-                      )}
+                  {selectedUserPins.map((pin) => {
+                    const fullImageUrl = getImageUrl(pin.image_url);
+                    return (
+                      <div key={pin.pinID} className="border border-gray-200 rounded-md p-4">
+                        {fullImageUrl && (
+                          <img
+                            src={fullImageUrl}
+                            alt="Squirrel"
+                            className="w-full h-48 object-cover rounded-md mb-2"
+                            onError={(e) => {
+                              // Hide image if it fails to load
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        )}
                       {pin.description && (
                         <p className="text-gray-800 mb-2">{pin.description}</p>
                       )}
@@ -120,7 +142,8 @@ export function LeaderboardTable({ entries, onUserClick }: LeaderboardTableProps
                         {new Date(pin.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

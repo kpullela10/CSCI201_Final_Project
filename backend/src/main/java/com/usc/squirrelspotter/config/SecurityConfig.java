@@ -33,13 +33,14 @@ public class SecurityConfig {
                 // Configure authorization rules
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints (no authentication required)
+                        // Static resources first (before API endpoints)
+                        .requestMatchers("/uploads/**").permitAll()  // Public: serve uploaded images
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/pins/weekly").permitAll()  // Public: view weekly pins
                         .requestMatchers("/api/pins/{pinID}").permitAll()  // Public: view pin details
                         .requestMatchers("/api/leaderboard").permitAll()  // Public: view leaderboard
                         .requestMatchers("/api/users/{userID}/pins").permitAll()  // Public: view user pins
                         .requestMatchers("/ws/**").permitAll()  // Public: WebSocket (Pin/Maps team)
-                        .requestMatchers("/uploads/**").permitAll()  // Public: serve uploaded images
                         // Protected endpoints (authentication required)
                         .requestMatchers("/api/pins/my").authenticated()  // Protected: get my pins
                         .requestMatchers("/api/pins").authenticated()  // Protected: create pin

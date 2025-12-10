@@ -16,7 +16,6 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
@@ -29,4 +28,8 @@ dist-ssr
 
 # Claude Code settings (may contain allowed commands with credentials)
 .claude/
+
+# macOS system files
+.DS_Store
+
 

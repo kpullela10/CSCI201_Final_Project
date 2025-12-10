@@ -2,6 +2,27 @@
 
 A full-stack web application for USC students to pin squirrel sightings on campus and compete on a leaderboard.
 
+## 🚀 Live Demo
+
+<div align="center">
+
+### [👉 Try the Live Application Now 👈](https://csci-201-final-project-34zx59z3q-csci201-group15-50a4b012.vercel.app)
+
+</div>
+
+The application is fully deployed and ready to use:
+- ✅ **Frontend:** Deployed on Vercel
+- ✅ **Backend:** Deployed on Railway (`https://csci201finalproject-production.up.railway.app`)
+- ✅ **Database:** MySQL on Railway
+
+**Getting Started:**
+1. Click the demo link above (or use your Vercel URL)
+2. Sign up with a `@usc.edu` email address
+3. Start spotting squirrels on the USC campus map! 🐿️
+4. Compete on the leaderboard
+
+> **Note:** Make sure to update the demo link with your actual Vercel deployment URL after deploying the frontend.
+
 ## Project Overview
 
 Squirrel Spotter USC allows USC students to:
@@ -56,8 +77,10 @@ Squirrel Spotter USC allows USC students to:
 
 #### Pin Management
 - Create pins with description and optional image upload
+- Choose from default images (Pexels/Unsplash) or upload your own
 - View pin details: image, description, username, timestamp, coordinates
 - Rate limiting: 4-5 pins per 30 minutes per user
+- External image URLs supported for default images
 
 #### Leaderboard
 - Weekly leaderboard (pins from last 7 days)
@@ -209,7 +232,9 @@ CSCI201_Final_Project/
 ### Pins (Requires Authentication)
 - `GET /api/pins/weekly` - Get pins from last 7 days
 - `GET /api/pins/my` - Get current user's pins
-- `POST /api/pins` - Create new pin (multipart/form-data)
+- `POST /api/pins` - Create new pin (multipart/form-data or JSON with `image_url`)
+  - Supports file uploads (saved to `/uploads/` directory)
+  - Supports external image URLs (for default images from Pexels/Unsplash)
 - `GET /api/pins/:pinID` - Get pin by ID
 
 ### Leaderboard
@@ -217,7 +242,8 @@ CSCI201_Final_Project/
 - `GET /api/users/:userID/pins` - Get pins by specific user
 
 ### WebSocket
-- `ws://<API_BASE_URL>/ws/pins` - Real-time pin updates
+- `wss://<API_BASE_URL>/ws/pins` - Real-time pin updates (secure WebSocket in production)
+- Automatically uses `wss://` (secure) for HTTPS backends, `ws://` for local development
 
 For detailed API documentation, see [backend/README.md](backend/README.md).
 
@@ -285,6 +311,9 @@ railway up
 3. Set environment variable:
    - `VITE_API_BASE_URL=https://your-backend.railway.app`
 4. Deploy!
+5. Your app will be available at `https://your-app.vercel.app`
+
+**Important:** Update the demo link at the top of this README with your Vercel URL!
 
 See [backend/RAILWAY_SETUP.md](backend/RAILWAY_SETUP.md) for detailed deployment instructions.
 
@@ -334,6 +363,13 @@ VITE_API_BASE_URL=http://localhost:8080  # or your Railway URL
 - Check `VITE_API_BASE_URL` in frontend `.env` file
 - Check browser console for CORS errors
 - Ensure CORS is configured in backend
+- For production: Ensure WebSocket uses `wss://` (secure) protocol
+
+### Image upload issues (403 Forbidden)
+
+- **For uploaded files:** Railway's filesystem is ephemeral - files may be lost on redeploy
+- **For default images:** External URLs (Pexels/Unsplash) are stored directly and work immediately
+- **Solution:** Use default images for production, or implement cloud storage (S3, Cloudinary) for file uploads
 
 ### Authentication issues
 
@@ -346,6 +382,23 @@ VITE_API_BASE_URL=http://localhost:8080  # or your Railway URL
 - Verify schema is initialized: `mvn spring-boot:run` creates tables automatically
 - Check MySQL logs for errors
 - Ensure user has proper permissions
+
+## Recent Updates
+
+### Image Handling
+- ✅ Added support for external image URLs (default images from Pexels/Unsplash)
+- ✅ File uploads still supported for custom images
+- ✅ External URLs stored directly in database (no file system dependency)
+
+### WebSocket Configuration
+- ✅ Automatic secure WebSocket (`wss://`) for production HTTPS backends
+- ✅ Falls back to `ws://` for local development
+- ✅ Real-time pin updates working in production
+
+### Deployment
+- ✅ Backend deployed on Railway with MySQL database
+- ✅ Frontend deployed on Vercel with automatic builds
+- ✅ Environment variables configured for production
 
 ## Development Workflow
 

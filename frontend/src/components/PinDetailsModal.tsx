@@ -1,13 +1,31 @@
 import type { Pin } from '../types';
 import { formatDate, formatRelativeTime } from '../utils/dateFormat';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
 interface PinDetailsModalProps {
   pin: Pin | null;
   onClose: () => void;
 }
 
+function getImageUrl(imageUrl: string | undefined): string | null {
+  if (!imageUrl) return null;
+  
+  // If it's already a full URL (starts with http:// or https://), return as-is
+  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+    return imageUrl;
+  }
+  
+  // Otherwise, prepend the backend API base URL
+  // Remove leading slash if present to avoid double slashes
+  const cleanUrl = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
+  return `${API_BASE_URL}/${cleanUrl}`;
+}
+
 export function PinDetailsModal({ pin, onClose }: PinDetailsModalProps) {
   if (!pin) return null;
+
+  const fullImageUrl = getImageUrl(pin.image_url);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={onClose}>
@@ -26,12 +44,16 @@ export function PinDetailsModal({ pin, onClose }: PinDetailsModalProps) {
             </button>
           </div>
 
-          {pin.image_url && (
+          {fullImageUrl && (
             <div className="mb-4">
               <img
-                src={pin.image_url}
+                src={fullImageUrl}
                 alt="Squirrel"
                 className="w-full h-64 object-cover rounded-md"
+                onError={(e) => {
+                  // Hide image if it fails to load
+                  e.currentTarget.style.display = 'none';
+                }}
               />
             </div>
           )}

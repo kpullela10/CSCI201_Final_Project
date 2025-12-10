@@ -4,7 +4,7 @@ import { getWeeklyPins, getMyPins } from '../api/pins';
 import { useAuth } from './useAuth';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-const WS_URL = API_BASE_URL.replace(/^http/, 'ws');
+const WS_URL = API_BASE_URL.replace(/^https?/, (protocol) => protocol === 'https' ? 'wss' : 'ws');
 
 const POLL_INTERVAL_MS = 30000;
 const INITIAL_RECONNECT_DELAY_MS = 1000;

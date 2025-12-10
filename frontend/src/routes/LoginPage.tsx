@@ -15,6 +15,8 @@ export function LoginPage() {
   }
 
   const handleLogin = async (email: string, username: string, password: string) => {
+    // username parameter required by AuthForm interface but not used in login
+    void username;
     setError('');
     try {
       await login(email, password);

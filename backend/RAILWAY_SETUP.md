@@ -1,5 +1,12 @@
 # Railway Deployment Guide
 
+## 🚀 Live Application
+
+The application is fully deployed:
+- **Frontend:** [View on Vercel](https://csci-201-final-project-34zx59z3q-csci201-group15-50a4b012.vercel.app)
+- **Backend:** `https://csci201finalproject-production.up.railway.app`
+- **Database:** MySQL on Railway
+
 ## MySQL Configuration
 
 Your Railway MySQL instance details:
@@ -214,6 +221,17 @@ If needed, manually run `schema.sql` in Railway MySQL.
 3. ✅ Update frontend `.env` with Railway backend URL
 4. 🚀 Deploy frontend to Vercel
 5. 🎉 Full stack deployed!
+
+## Recent Updates
+
+### Image Handling
+- ✅ External image URLs now supported (for default images from Pexels/Unsplash)
+- ✅ File uploads still work, but note Railway's ephemeral filesystem
+- ✅ External URLs stored directly in database (recommended for production)
+
+### WebSocket
+- ✅ Secure WebSocket (`wss://`) automatically used in production
+- ✅ Real-time pin updates working correctly
 
 ## Helpful Railway Commands
 
