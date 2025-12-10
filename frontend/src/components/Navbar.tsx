@@ -1,6 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { quickTestLogin } from '../utils/testUser';
 
 export function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -46,13 +45,6 @@ export function Navbar() {
               </>
             ) : (
               <>
-                <button
-                  onClick={quickTestLogin}
-                  className="px-4 py-2 text-white hover:text-gray-200 hover:bg-[#7a0000] rounded-md transition border border-white/30"
-                  title="Quick login with test user (testuser@usc.edu)"
-                >
-                  Test Login
-                </button>
                 <Link
                   to="/login"
                   className="px-4 py-2 text-white hover:text-gray-200 hover:bg-[#7a0000] rounded-md transition"
