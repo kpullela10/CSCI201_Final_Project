@@ -6,7 +6,7 @@ A full-stack web application for USC students to pin squirrel sightings on campu
 
 <div align="center">
 
-### [👉 Try the Live Application Now 👈](https://csci-201-final-project-34zx59z3q-csci201-group15-50a4b012.vercel.app)
+### [👉 Try the Live Application Now 👈](https://csci-201-final-project-33qh-bww31dupo-csci201-group15-50a4b012.vercel.app)
 
 </div>
 
